@@ -8,7 +8,8 @@ data class PlayerState(
     val hasPro: Boolean get() = left != null && left.side == Side.PRO
     val hasController: Boolean get() = left != null || right != null
     val hasFullController: Boolean get() = left != null && right != null
-    val isSideways: Boolean get() = hasController && !hasFullController && !hasPro
+    val hasBothSticks: Boolean get() = hasFullController || hasPro
+    val isSideways: Boolean get() = hasController && !hasBothSticks
 
     // Raw hardware button state (for UI display showing physical button activity)
     val pressed: Set<String>

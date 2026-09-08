@@ -25,3 +25,4 @@ keystore.properties
 
 # Tooling artifacts
 .impeccable/
+.claude/

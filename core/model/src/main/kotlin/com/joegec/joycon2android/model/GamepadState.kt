@@ -11,7 +11,7 @@ data class GamepadState(
         private const val CENTER = 2048
 
         fun from(state: PlayerState): GamepadState = when {
-            state.hasFullController -> GamepadState(
+            state.hasBothSticks -> GamepadState(
                 pressed = state.pressed,
                 leftStickX = state.leftStickX,
                 leftStickY = state.leftStickY,
