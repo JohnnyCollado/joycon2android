@@ -25,7 +25,7 @@ object AppType {
     )
 
     /**
-     * Wide-tracked chrome label for the connection/Shizuku status line in the app bar. Line height
+     * Wide-tracked chrome label for the connection/privileged-access status line in the app bar. Line height
      * is left at the font default so the two stacked status lines keep their breathing room.
      */
     val statusOverline = TextStyle(

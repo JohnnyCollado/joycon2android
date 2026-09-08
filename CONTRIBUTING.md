@@ -46,9 +46,9 @@ the convention plugins; don't hand-roll `android {}` blocks in a module.
   ./gradlew assembleDebug
   ```
 
-Testing the virtual gamepad on-device also needs [Shizuku](https://shizuku.rikka.app/) running; the
-DSU motion server and BLE features work without it. See the [README](README.md) for the full setup
-guide and the BLE protocol reference.
+Testing the virtual gamepad on-device needs an Android 11+ device with wireless debugging paired
+to the app; the DSU motion server and BLE features work without it, on API 24+. See the
+[README](README.md) for the full setup guide and the BLE protocol reference.
 
 ## Before you open a PR
 

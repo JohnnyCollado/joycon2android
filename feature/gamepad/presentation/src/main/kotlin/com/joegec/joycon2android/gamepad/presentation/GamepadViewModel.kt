@@ -8,7 +8,9 @@ import com.joegec.joycon2android.gamepad.DisableGamepadUseCase
 import com.joegec.joycon2android.gamepad.EnableGamepadUseCase
 import com.joegec.joycon2android.gamepad.GamepadStatus
 import com.joegec.joycon2android.gamepad.ObserveGamepadStatusUseCase
-import com.joegec.joycon2android.gamepad.ObserveShizukuAvailabilityUseCase
+import com.joegec.joycon2android.gamepad.wirelessdebug.ObserveWirelessDebugStatusUseCase
+import com.joegec.joycon2android.gamepad.wirelessdebug.StartPairingUseCase
+import com.joegec.joycon2android.gamepad.wirelessdebug.WirelessDebugStatus
 import com.joegec.joycon2android.ui.components.DolphinSetupPhase
 import com.joegec.joycon2android.ui.components.EmulatorOption
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,10 +21,11 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/** Feature-scoped state holder for the virtual gamepad and its privileged-access setup. */
+/** Feature-scoped state holder for the virtual gamepad and its wireless-debugging setup. */
 class GamepadViewModel(
     observeGamepadStatus: ObserveGamepadStatusUseCase,
-    observeShizukuAvailability: ObserveShizukuAvailabilityUseCase,
+    observeWirelessDebugStatus: ObserveWirelessDebugStatusUseCase,
+    private val startPairing: StartPairingUseCase,
     private val enableGamepad: EnableGamepadUseCase,
     private val disableGamepad: DisableGamepadUseCase,
     val gamepadEmulators: List<EmulatorOption> = emptyList(),
@@ -32,14 +35,16 @@ class GamepadViewModel(
     val status: StateFlow<GamepadStatus> = observeGamepadStatus()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), GamepadStatus())
 
-    val shizukuAvailable: StateFlow<Boolean> = observeShizukuAvailability()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), false)
+    val wirelessDebug: StateFlow<WirelessDebugStatus> = observeWirelessDebugStatus()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), WirelessDebugStatus())
 
     private val _selectedEmulator = MutableStateFlow(gamepadEmulators.firstOrNull()?.id ?: "")
     val selectedEmulator: StateFlow<String> = _selectedEmulator.asStateFlow()
 
     private val _setupPhase = MutableStateFlow(DolphinSetupPhase.IDLE)
     val setupPhase: StateFlow<DolphinSetupPhase> = _setupPhase.asStateFlow()
+
+    fun pairDevice() = startPairing()
 
     fun toggle(enabled: Boolean, players: List<PlayerState>) {
         if (enabled) enableGamepad(players) else disableGamepad()

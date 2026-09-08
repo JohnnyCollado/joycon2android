@@ -1,6 +1,20 @@
 <resources>
-    <string name="shizuku_setup_title">Shizuku required</string>
-    <string name="shizuku_setup_body">The virtual gamepad needs Shizuku for privileged access. Install the Shizuku app, start its service, then grant this app permission when prompted.</string>
-    <string name="shizuku_setup_link_description">Open the Shizuku GitHub page</string>
-    <string name="shizuku_url" translatable="false">https://github.com/RikkaApps/Shizuku</string>
+    <string name="adb_title">Wireless debugging</string>
+    <string name="adb_subtitle_connected">Connected</string>
+    <string name="adb_subtitle_working">Connecting…</string>
+    <string name="adb_subtitle_disconnected">Not connected</string>
+    <string name="adb_instructions">The virtual gamepad needs shell access, which this app gets by pairing with your device\'s own wireless debugging. Tap below, then choose \"Pair device with pairing code\" and type the code into the notification that appears.</string>
+    <string name="adb_pair_device">Pair device</string>
+    <string name="adb_notifications_required">Pairing needs notification permission — the code has to be typed into a notification, because opening this app closes the pairing dialog.</string>
+    <string name="adb_enable_notifications">Allow notifications</string>
+    <string name="adb_unsupported">Wireless debugging needs Android 11 or newer, so the virtual gamepad and emulator setup aren\'t available on this device. Motion output over DSU still works.</string>
+
+    <string name="adb_failure_pairing_window_closed">The pairing window closed. Re-open \"Pair device with pairing code\" and try again.</string>
+    <string name="adb_failure_pairing_rejected">Pairing failed. Check the six-digit code and try again.</string>
+    <string name="adb_failure_connect_failed">Paired, but the connection failed. Check that wireless debugging is still on.</string>
+    <string name="adb_failure_not_paired">Not paired with this device yet. Tap \"Pair device\" to set it up.</string>
+
+    <string name="gamepad_failure_no_privileged_access">No privileged access — pair with wireless debugging first.</string>
+    <string name="gamepad_failure_no_controllers_assigned">No controllers assigned.</string>
+    <string name="gamepad_failure_create_failed">Failed to create the virtual gamepad — check privileged access.</string>
 </resources>

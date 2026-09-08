@@ -78,7 +78,7 @@ Two app roles live in `AppTextStyles.kt` (`AppType`) because they aren't reading
 - **`telemetry`** — monospace + tabular figures (`tnum`) + `includeFontPadding=false`, sized by the
   caller. All live numeric readouts (IMU, stick coords, battery %, DSU port, config snippets, the
   DS4 name table) share it, so digit columns stay aligned as values change.
-- **`statusOverline`** — the wide-tracked `DISCONNECTED / SHIZUKU` chrome label in the app bar.
+- **`statusOverline`** — the wide-tracked `DISCONNECTED / WIRELESS DEBUG` chrome label in the app bar.
 
 Controller-visualisation glyph sizes (d-pad arrows, face/shoulder labels, on-controller buttons)
 stay in `Dimens` as geometry tuned to the drawn controls — deliberately outside the type scale.
@@ -120,8 +120,8 @@ keeps single full-width columns. All of it lives in `JoyconScreen.kt`:
   space, draws it scaled down, and reports the smaller size — so the whole controller (buttons,
   labels, spacing) shrinks uniformly *and* reflows, letting a full player fit the short height.
   Compact rows aren't scaled (already short).
-- **Feature cards** — two columns: Virtual Gamepad with its Shizuku dependency stacked beneath it on
-  the left, DSU Motion Server on the right (so the Shizuku card always sits under the gamepad).
+- **Feature cards** — two columns: Virtual Gamepad with its wireless-debugging setup stacked beneath
+  it on the left, DSU Motion Server on the right (so the setup card always sits under the gamepad).
 - **Scanning graphics** — the "Looking for Joy-Con 2" card and the sync-button illustration sit side
   by side (`ScanningGraphics`).
 - **Action buttons** — a row with Disconnect All on the left and Scan on the right; Disconnect keeps
@@ -156,7 +156,7 @@ reduced-motion (see PRODUCT.md accessibility). Ease-out curves, no bounce/elasti
    telemetry now uses solid `TextBright` (values) / `TextDim` (labels) with no sub-threshold alpha,
    and `BatteryLow` was lightened to `#FF8A8A`; all clear 4.5:1 (verified numerically).
 4. ~~**Color-only status** — pair battery/connection color with icon or text.~~ ✅ Largely addressed:
-   battery shows a level-filled icon + %, and the connection/Shizuku status pairs its dot with a
+   battery shows a level-filled icon + %, and the connection/privileged-access status pairs its dot with a
    text label.
 5. **Motion system** — define purposeful, reduced-motion-aware transitions for connect / assign.
 6. **Responsive polish** — landscape grid + player scaling is in; a ≤320dp / 200%-font density

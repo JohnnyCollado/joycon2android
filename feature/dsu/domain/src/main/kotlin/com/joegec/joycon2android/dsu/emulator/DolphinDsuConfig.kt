@@ -5,7 +5,7 @@ import com.joegec.joycon2android.emulatorconfig.DolphinPaths
 
 /**
  * Dolphin's DSUClient.ini on Android. It lives in Dolphin's external data dir — writable by a
- * shell-uid process (Shizuku / wireless debugging) but not by us directly. Servers are listed
+ * shell-uid process (wireless debugging) but not by us directly. Servers are listed
  * on the `Entries` line as `;`-separated `name:host:port` tokens; [merge] adds ours without
  * disturbing any the user already configured.
  */

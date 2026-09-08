@@ -21,6 +21,10 @@ class UhidRelay(private val name: String, private val playerIndex: Int) {
     fun create(context: Context, shell: PrivilegedShell): Boolean {
         return try {
             val relayPath = deployRelay(context, shell)
+                ?: run {
+                    Log.e(TAG, "Could not deploy the UHID relay")
+                    return false
+                }
             val remoteProcess = shell.newProcess(arrayOf(relayPath))
                 ?: run {
                     Log.e(TAG, "Privileged shell returned no process")
@@ -134,19 +138,38 @@ class UhidRelay(private val name: String, private val playerIndex: Int) {
     companion object {
         private const val TAG = "UhidRelay"
         private const val RELAY_REMOTE_PATH = "/data/local/tmp/.uhid_relay"
+        private const val DEPLOY_OK = "DEPLOYED"
 
         @Volatile
         private var relayDeployed = false
 
-        private fun deployRelay(context: Context, shell: PrivilegedShell): String {
+        // Copies the relay out of the app's native lib dir into /data/local/tmp, which the shell
+        // uid can execute. This must go through shell() as one script, not newProcess() with an
+        // "sh -c" argv: the ADB backend joins argv into a single `exec:` string that adbd hands to
+        // its own shell, which would then run `cp` with the paths as $0/$1 and copy nothing.
+        // ShellProcess exposes no exit status, so the script reports its own.
+        private fun deployRelay(context: Context, shell: PrivilegedShell): String? {
             if (relayDeployed) return RELAY_REMOTE_PATH
 
             val localPath = context.applicationInfo.nativeLibraryDir + "/libuhid_relay.so"
+            val process = shell.shell(
+                "cp '$localPath' '$RELAY_REMOTE_PATH' && " +
+                    "chmod 755 '$RELAY_REMOTE_PATH' && echo $DEPLOY_OK",
+            ) ?: return null
 
-            // Copy from app's native lib dir to /data/local/tmp/ (shell-accessible)
-            shell.newProcess(
-                arrayOf("sh", "-c", "cp $localPath $RELAY_REMOTE_PATH && chmod 755 $RELAY_REMOTE_PATH"),
-            )?.waitFor()
+            val output = try {
+                process.inputStream.readBytes().decodeToString()
+            } catch (e: Exception) {
+                Log.e(TAG, "Relay deploy failed", e)
+                ""
+            } finally {
+                process.destroy()
+            }
+
+            if (!output.contains(DEPLOY_OK)) {
+                Log.e(TAG, "Relay deploy failed: ${output.trim()}")
+                return null
+            }
             relayDeployed = true
             return RELAY_REMOTE_PATH
         }

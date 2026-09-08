@@ -5,8 +5,8 @@ import java.io.OutputStream
 
 /**
  * A source of shell-uid processes — the one privilege the UHID relay needs (to reach
- * `/dev/uhid`). Implemented over Shizuku and over an in-app ADB/wireless-debugging
- * connection, so the relay layer is unaware of which grants the privilege.
+ * `/dev/uhid`). Backed by an in-app ADB connection to the device's own wireless-debugging
+ * daemon, so the relay layer is unaware of how the privilege was granted.
  */
 interface PrivilegedShell {
     val isReady: Boolean

@@ -5,7 +5,7 @@
     <!-- Connection status -->
     <string name="status_scanning">SCANNING…</string>
     <string name="status_disconnected">DISCONNECTED</string>
-    <string name="status_shizuku">SHIZUKU</string>
+    <string name="status_wireless_debug">WIRELESS DEBUG</string>
 
     <!-- Buttons -->
     <string name="button_scan_connect">Scan &amp; Connect</string>
@@ -29,6 +29,13 @@
     <string name="gamepad_subtitle_off">Output Joy-Con input as a system gamepad</string>
     <string name="gamepad_subtitle_on">Active — input available to all apps</string>
     <string name="gamepad_emulator_setup">Set up</string>
+
+    <!-- Wireless debugging pairing -->
+    <string name="adb_pairing_channel_name">Wireless debugging pairing</string>
+    <string name="adb_pairing_notif_title">Pair Joycon2Android</string>
+    <string name="adb_pairing_notif_text">Enter the code from the Wireless debugging pairing dialog</string>
+    <string name="adb_pairing_notif_action">Enter code</string>
+    <string name="adb_pairing_code_label">Pairing code</string>
 
     <!-- Player removal -->
     <string name="action_undo">Undo</string>

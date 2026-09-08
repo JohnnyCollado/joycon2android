@@ -8,7 +8,7 @@ product
 
 Android gaming and emulation enthusiasts who want to use Nintendo Switch 2 **Joy-Con 2**
 controllers as system-wide gamepads on their phone or tablet. They are comfortable with
-Developer Options, Shizuku, and per-emulator config — this is not a mainstream consumer
+Developer Options, wireless-debugging pairing, and per-emulator config — this is not a mainstream consumer
 audience. Their context is hands-on: often mid-setup at a desk or on a couch, frequently
 *holding a controller in one hand* while operating the app with the other, wanting to get
 connected and into a game (or emulator) with as little friction as possible and then have
@@ -27,7 +27,8 @@ Joy-Con 2 controllers speak BLE over a custom GATT service rather than standard
 HID-over-GATT, so Android cannot pair them through normal Bluetooth settings. Joycon2Android
 bridges that gap: it connects over GATT, sends the vendor init sequence, parses raw
 notification packets, and exposes each assigned player as its own standard virtual HID
-gamepad via UHID (through Shizuku's privileged path). It also runs a DSU motion server so
+gamepad via UHID (through an in-app ADB connection to the device's own wireless-debugging
+daemon). It also runs a DSU motion server so
 emulators get gyro/accel, and can write emulator controller configs directly.
 
 Success is: a controller goes from SYNC-button to "working in my game/emulator" in well
@@ -71,7 +72,7 @@ than giving app-specific step-by-step instructions.
 4. **Show state, don't bury it.** Enthusiasts want to see battery, connection, and live input.
    Surface it with clear hierarchy so richness never becomes clutter.
 5. **Speak the user's language.** Assume competence. Use correct domain terms (DSU, UHID,
-   Shizuku, emulator names); keep copy generic and self-explanatory rather than hand-holding.
+   wireless debugging, emulator names); keep copy generic and self-explanatory rather than hand-holding.
 
 ## Accessibility & Inclusion
 

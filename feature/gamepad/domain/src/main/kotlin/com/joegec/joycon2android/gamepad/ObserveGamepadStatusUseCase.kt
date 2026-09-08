@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.combine
 
 class ObserveGamepadStatusUseCase(private val repository: GamepadRepository) {
     operator fun invoke(): Flow<GamepadStatus> =
-        combine(repository.enabled, repository.error) { enabled, error ->
-            GamepadStatus(enabled, error)
+        combine(repository.enabled, repository.failure) { enabled, failure ->
+            GamepadStatus(enabled, failure)
         }
 }

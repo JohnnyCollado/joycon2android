@@ -7,24 +7,31 @@ object ReportMapper {
 
     private const val REPORT_SIZE = 13
 
-    // Button bit positions matching the HID report descriptor order (Button 1-16)
+    // Bit N of the report is HID Button N+1, and for a Game Pad collection the kernel maps
+    // Button N to BTN_SOUTH + (N-1) -- a Sega-style layout that spends slots 3 and 6 on BTN_C and
+    // BTN_Z, between the face buttons and the shoulders. Assigning our buttons in their own order
+    // would therefore land X on BTN_C (KEYCODE_BUTTON_C, which games ignore) and shift everything
+    // after it, so each button is placed on the bit whose BTN_ code it should actually produce.
+    //
+    // Android's Generic.kl maps only 0x130-0x13e, so bit 15 (0x13f) is delivered to nothing. GR
+    // takes that slot: it exists only on the Pro Controller, whereas Camera is on every Joy-Con 2.
     private val BUTTON_MAP: Map<String, Int> = mapOf(
-        JoyconButton.A.id to 0,
-        JoyconButton.B.id to 1,
-        JoyconButton.X.id to 2,
-        JoyconButton.Y.id to 3,
-        JoyconButton.L.id to 4,
-        JoyconButton.R.id to 5,
-        JoyconButton.ZL.id to 6,
-        JoyconButton.ZR.id to 7,
-        JoyconButton.Minus.id to 8,
-        JoyconButton.Plus.id to 9,
-        JoyconButton.LS.id to 10,
-        JoyconButton.RS.id to 11,
-        JoyconButton.Home.id to 12,
-        JoyconButton.Camera.id to 13,
-        JoyconButton.GL.id to 14,
-        JoyconButton.GR.id to 15,
+        JoyconButton.A.id to 0,       // BTN_SOUTH  -> BUTTON_A
+        JoyconButton.B.id to 1,       // BTN_EAST   -> BUTTON_B
+        JoyconButton.Camera.id to 2,  // BTN_C      -> BUTTON_C
+        JoyconButton.X.id to 3,       // BTN_NORTH  -> BUTTON_X
+        JoyconButton.Y.id to 4,       // BTN_WEST   -> BUTTON_Y
+        JoyconButton.GL.id to 5,      // BTN_Z      -> BUTTON_Z
+        JoyconButton.L.id to 6,       // BTN_TL     -> BUTTON_L1
+        JoyconButton.R.id to 7,       // BTN_TR     -> BUTTON_R1
+        JoyconButton.ZL.id to 8,      // BTN_TL2    -> BUTTON_L2
+        JoyconButton.ZR.id to 9,      // BTN_TR2    -> BUTTON_R2
+        JoyconButton.Minus.id to 10,  // BTN_SELECT -> BUTTON_SELECT
+        JoyconButton.Plus.id to 11,   // BTN_START  -> BUTTON_START
+        JoyconButton.Home.id to 12,   // BTN_MODE   -> BUTTON_MODE
+        JoyconButton.LS.id to 13,     // BTN_THUMBL -> BUTTON_THUMBL
+        JoyconButton.RS.id to 14,     // BTN_THUMBR -> BUTTON_THUMBR
+        JoyconButton.GR.id to 15,     // 0x13f      -> unmapped by Generic.kl
     )
 
     private const val HAT_CENTER = 0x0F

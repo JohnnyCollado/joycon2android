@@ -21,21 +21,29 @@ Joy-Con 2 controllers use BLE with a custom GATT service (not standard HID-over-
 ### Prerequisites
 
 - Android device running API 24+ with BLE support
-- [Shizuku](https://shizuku.rikka.app/) installed and running — the privileged path for the virtual gamepad and emulator config
+- Android 11+ (API 30) **for the virtual gamepad and emulator auto-setup**, which need wireless
+  debugging. BLE connection and the DSU motion server work on API 24+
 - Joy-Con 2 controller(s) or a Switch 2 Pro Controller
 
-### Step 1: Install Shizuku
+No companion app and no root: the app pairs with your device's own wireless debugging to get the
+shell access it needs for `/dev/uhid`.
 
-1. Install Shizuku from [Google Play](https://play.google.com/store/apps/details?id=moe.shizuku.privileged.api) or [GitHub](https://github.com/RikkaApps/Shizuku/releases)
-2. Open Shizuku and start it using one of:
-   - **Wireless debugging (recommended, no root):** Enable Developer Options → Wireless Debugging → pair Shizuku via the notification shade pairing method
-   - **ADB:** Run `adb shell sh /storage/emulated/0/Android/data/moe.shizuku.privileged.api/start.sh` from a computer
-   - **Root:** Tap "Start" in Shizuku (if rooted)
-3. Verify Shizuku shows "Running" with a green status
-
-### Step 2: Install Joycon2Android
+### Step 1: Install Joycon2Android
 
 Install the APK from the [latest release](https://github.com/JoeGeC/joycon2android/releases) or build from source. Grant Bluetooth permissions when prompted.
+
+### Step 2: Pair with wireless debugging
+
+1. Enable **Developer Options**, then turn on **Wireless debugging**
+2. In the app, tap **Pair device** on the Wireless debugging card — it opens the system screen
+3. Choose **Pair device with pairing code**
+4. Type the six-digit code into the **notification** the app posts
+
+The code goes in the notification rather than the app because the system pairing dialog withdraws
+its pairing service the moment another app comes to the foreground. Allow notifications when asked.
+
+Pairing is a one-off: the app keeps its own ADB key, so after a reboot it reconnects on its own
+once wireless debugging is back on.
 
 ### Step 3: Connect Controllers
 
@@ -46,8 +54,7 @@ Install the APK from the [latest release](https://github.com/JoeGeC/joycon2andro
 ### Step 4: Enable Virtual Gamepad
 
 1. With at least one controller assigned, toggle the **Gamepad** switch
-2. Grant Shizuku permission when prompted (first time only)
-3. Each assigned player appears as its **own** input device named `Joy-Con Virtual Gamepad <N>`
+2. Each assigned player appears as its **own** input device named `Joy-Con Virtual Gamepad <N>`
 
 Every assigned player becomes a separate standard gamepad — P1, P2, … are distinct devices, so
 multiplayer "just works" and emulators can map each to a different port. Any app that supports
@@ -72,7 +79,7 @@ map the controller manually in the emulator instead.
 
 The virtual gamepad can't carry motion (HID gamepads have no motion channel). For gyro
 aiming in emulators, enable the DSU ([cemuhook](https://v1993.github.io/cemuhook-protocol/))
-server — UDP port 26760, no Shizuku needed.
+server — UDP port 26760, no privileged access needed (so it works on API 24+ too).
 
 1. Assign controllers to players. Player N streams on DSU slot N−1 (P1–P4 only).
    A Joy-Con pair streams motion from its **right** Joy-Con.
@@ -105,7 +112,7 @@ taken. Exception: a solo sideways Joy-Con's SL/SR arrive as its shoulder buttons
 **Automatic:** with DSU on, the DSU card's **Set up Dolphin and Wiimote mapping** button writes
 both `DSUClient.ini` (the server entry) and `WiimoteNew.ini` (per-player Wii Remote mappings + the
 accelerometer/gyro motion input) to match the current assignment, then prompts you to restart
-Dolphin. It needs Shizuku connected; if the write fails
+Dolphin. It needs wireless debugging connected; if the write fails
 (some OEM builds block writing into another app's `Android/data`), fall back to the manual steps.
 
 **Manual** (no DSU settings UI — configure by file):
@@ -134,8 +141,12 @@ Dolphin. It needs Shizuku connected; if the write fails
 
 | Issue | Fix |
 |---|---|
-| "Shizuku is not running" | Open Shizuku app and start the service |
-| "Shizuku permission denied" | Open Shizuku → Apps → grant permission to Joycon2Android |
+| Status shows "Not connected" | Turn Wireless debugging on, then tap **Pair device** |
+| "Pairing failed" | The code expires quickly — re-open "Pair device with pairing code" and retype it |
+| "The pairing window closed" | Don't leave the system pairing dialog; type the code into the notification instead |
+| No pairing notification | Allow notifications for the app — the code can only be entered there |
+| Stops working after a reboot | Turn Wireless debugging back on; the app reconnects on its own |
+| Gamepad card disabled | Wireless debugging needs Android 11+; use the DSU motion server instead |
 | Controller not found during scan | Press SYNC again; move closer to device |
 | Gamepad not appearing in games | Check `adb shell getevent -p` for "Joy-Con Virtual Gamepad" |
 | Controller stops responding | Press SYNC to reset, then reconnect |
@@ -174,7 +185,7 @@ The app creates system-wide virtual gamepads using Linux's UHID (User-space HID)
 
 1. **`uhid_relay.c`** — A small native binary that opens `/dev/uhid` and writes UHID events using `write()`. Runs as a shell-uid process (`u:r:shell:s0` SELinux context, which has `/dev/uhid` access).
 
-2. **`UhidRelay.kt`** — Launches the relay binary through a `PrivilegedShell`, sends a UHID_CREATE2 event (4380-byte struct with HID report descriptor), then streams UHID_INPUT2 events through the stdin pipe. `PrivilegedAccess` supplies that shell via Shizuku's `IShizukuService.newProcess()`, so neither the relay nor the rest of the app cares how the privilege was granted.
+2. **`UhidRelay.kt`** — Launches the relay binary through a `PrivilegedShell`, sends a UHID_CREATE2 event (4380-byte struct with HID report descriptor), then streams UHID_INPUT2 events through the stdin pipe. `PrivilegedAccess` supplies that shell over an ADB connection to the device's own wireless-debugging daemon, using adbd's raw `exec:` service — not `shell:`, whose PTY would mangle the binary UHID stream. Neither the relay nor the rest of the app cares how the privilege was granted.
 
 3. **`ReportMapper.kt`** — Converts `PlayerState` into a 13-byte HID input report: 14 buttons + hat switch + 2x 16-bit sticks + 2x 8-bit triggers.
 
@@ -263,7 +274,7 @@ Debug DSU clients for wire inspection and IMU calibration live in `tools/`.
 - Android API 24+ (minSdk 24, targetSdk 36)
 - BLE-capable device
 - Joy-Con 2 controller(s) in pairing mode (press SYNC)
-- Shizuku running — the privileged path for the virtual gamepad
+- Android 11+ with wireless debugging paired — the privileged path for the virtual gamepad
 
 ### Permissions
 
@@ -460,8 +471,9 @@ This app builds on the reverse-engineering work of the community. In particular:
   thresholds used by the battery gauge.
 - **[cemuhook protocol docs](https://v1993.github.io/cemuhook-protocol/)** by v1993 — the DSU wire
   format the motion server implements.
-- **[Shizuku](https://shizuku.rikka.app/)** by RikkaApps — the privileged-access path that makes the
-  virtual gamepad and emulator auto-setup possible without root.
+- **[libadb-android](https://github.com/MuntashirAkon/libadb-android)** by MuntashirAkon — the
+  in-app ADB client (pairing, TLS, and mDNS discovery) that makes the virtual gamepad and emulator
+  auto-setup possible without root or a companion app.
 
 ---
 

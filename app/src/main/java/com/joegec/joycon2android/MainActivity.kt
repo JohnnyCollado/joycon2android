@@ -1,7 +1,12 @@
 package com.joegec.joycon2android
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -17,6 +22,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.joegec.joycon2android.buttonmapping.Console
@@ -25,7 +31,10 @@ import com.joegec.joycon2android.buttonmapping.presentation.ControllerMappingScr
 import com.joegec.joycon2android.buttonmapping.presentation.ControllerMappingViewModel
 import com.joegec.joycon2android.dsu.presentation.DsuViewModel
 import com.joegec.joycon2android.gamepad.emulator.EdenGamepadConfig
+import com.joegec.joycon2android.gamepad.presentation.AdbSetupState
 import com.joegec.joycon2android.gamepad.presentation.GamepadViewModel
+import com.joegec.joycon2android.gamepad.presentation.gamepadFailureMessage
+import com.joegec.joycon2android.gamepad.wirelessdebug.AdbState
 import com.joegec.joycon2android.ui.Joycon2ViewModel
 import com.joegec.joycon2android.ui.JoyconScreen
 import com.joegec.joycon2android.dsu.presentation.DsuCardState
@@ -55,7 +64,8 @@ class MainActivity : ComponentActivity() {
                 val c = (application as JoyconApplication).container
                 GamepadViewModel(
                     c.observeGamepadStatus,
-                    c.observeShizukuAvailability,
+                    c.observeWirelessDebugStatus,
+                    c.startPairing,
                     c.enableGamepad,
                     c.disableGamepad,
                     gamepadEmulators = c.emulatorSetup.gamepadEmulators(),
@@ -73,10 +83,19 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private val notificationsGranted = mutableStateOf(true)
+    private var notificationAsked = false
+
     override fun onResume() {
         super.onResume()
         viewModel.recheckPermissions()
+        notificationsGranted.value = hasNotificationPermission()
     }
+
+    private fun hasNotificationPermission(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // The UI is always dark, so force light bar icons rather than letting them follow the
@@ -97,6 +116,30 @@ class MainActivity : ComponentActivity() {
                 viewModel.startScan()
             } else {
                 viewModel.onPermissionsDenied()
+            }
+        }
+
+        // Pairing prompts for its code via a notification, so that permission gates pairing
+        val notificationPermLauncher = registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { granted -> notificationsGranted.value = granted }
+
+        notificationsGranted.value = hasNotificationPermission()
+
+        // Only asked once the user opts into pairing, never on launch. A second refusal is
+        // permanent, so send them to the app's notification settings instead of a dead prompt.
+        val enableNotifications = {
+            val permission = Manifest.permission.POST_NOTIFICATIONS
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                if (notificationAsked && !shouldShowRequestPermissionRationale(permission)) {
+                    startActivity(
+                        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                            .putExtra(Settings.EXTRA_APP_PACKAGE, packageName),
+                    )
+                } else {
+                    notificationAsked = true
+                    notificationPermLauncher.launch(permission)
+                }
             }
         }
 
@@ -127,13 +170,14 @@ class MainActivity : ComponentActivity() {
 
                     val state by viewModel.uiState.collectAsState()
                     val gamepadStatus by gamepadViewModel.status.collectAsState()
-                    val shizukuAvailable by gamepadViewModel.shizukuAvailable.collectAsState()
+                    val wirelessDebug by gamepadViewModel.wirelessDebug.collectAsState()
                     val dsuStatus by dsuViewModel.status.collectAsState()
                     val dolphinPhase by dsuViewModel.dolphinPhase.collectAsState()
                     val gamepadSetupPhase by gamepadViewModel.setupPhase.collectAsState()
                     val selectedEmulator by gamepadViewModel.selectedEmulator.collectAsState()
                     val permissionDenied by viewModel.permissionDenied.collectAsState()
                     val viewMode by viewModel.viewMode.collectAsState()
+                    val privilegedAccess = wirelessDebug.state == AdbState.CONNECTED
 
                     // A written emulator config is keyed to the current assignment; once it changes,
                     // the Done/Failed state is stale, so reset both setup buttons.
@@ -148,7 +192,7 @@ class MainActivity : ComponentActivity() {
                     JoyconScreen(
                         state = state,
                         gamepadEnabled = gamepadStatus.enabled,
-                        gamepadError = gamepadStatus.error,
+                        gamepadError = gamepadFailureMessage(gamepadStatus.failure),
                         dsuState = DsuCardState(
                             enabled = dsuStatus.enabled,
                             error = dsuStatus.error,
@@ -156,8 +200,14 @@ class MainActivity : ComponentActivity() {
                             address = dsuStatus.address,
                             showSlotLimitNote = state.activePlayers.any { it.player.index > 4 },
                             dolphinInstalled = dsuViewModel.dolphinInstalled,
-                            dolphinAutoConfigAvailable = shizukuAvailable,
+                            dolphinAutoConfigAvailable = privilegedAccess,
                             dolphinPhase = dolphinPhase,
+                        ),
+                        adbSetup = AdbSetupState(
+                            supported = wirelessDebug.supported,
+                            state = wirelessDebug.state,
+                            failure = wirelessDebug.failure,
+                            notificationsGranted = notificationsGranted.value,
                         ),
                         permissionDenied = permissionDenied,
                         onScan = { permLauncher.launch(permissionHandler.requiredPermissions) },
@@ -171,7 +221,7 @@ class MainActivity : ComponentActivity() {
                         gamepadEmulators = gamepadViewModel.gamepadEmulators,
                         selectedGamepadEmulator = selectedEmulator,
                         onSelectGamepadEmulator = gamepadViewModel::selectEmulator,
-                        gamepadSetupAvailable = shizukuAvailable,
+                        gamepadSetupAvailable = privilegedAccess,
                         gamepadSetupPhase = gamepadSetupPhase,
                         onConfigureGamepad = { gamepadViewModel.configureGamepad(state.activePlayers) },
                         onOpenGamepadMapping = {
@@ -185,7 +235,9 @@ class MainActivity : ComponentActivity() {
                         onConfigureDolphin = { dsuViewModel.configureDolphinDsu(state.activePlayers) },
                         onOpenDsuMapping = { mappingConsole = Console.WIIMOTE_NUNCHUK },
                         onOpenSettings = { startActivity(permissionHandler.buildSettingsIntent()) },
-                        shizukuAvailable = shizukuAvailable,
+                        onEnableNotifications = enableNotifications,
+                        onStartAdbPairing = gamepadViewModel::pairDevice,
+                        privilegedAccess = privilegedAccess,
                         viewMode = viewMode,
                         onViewModeChange = viewModel::setViewMode,
                     )

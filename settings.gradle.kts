@@ -20,6 +20,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // libadb-android and its sun.security backport are published only on JitPack
+        maven { url = uri("https://jitpack.io") }
     }
 }
 

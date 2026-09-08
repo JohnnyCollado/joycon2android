@@ -1,4 +1,4 @@
-// UHID relay process — runs under Shizuku shell context (u:r:shell:s0).
+// UHID relay process — runs under the shell context (u:r:shell:s0) granted by ADB.
 // Opens /dev/uhid and relays length-prefixed UHID events from stdin.
 //
 // Protocol (little-endian):

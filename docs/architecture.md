@@ -26,7 +26,8 @@ live in separate modules that share only domain.
 | `:app` | `com.android.application` | every feature module + all `:core` |
 | `:konsist` | `joycon.kotlin.jvm` (test-only) | — (scans the whole project) |
 
-…for each feature `<f>` ∈ { `connection`, `assignment`, `gamepad`, `dsu` }.
+…for each feature `<f>` ∈ { `connection`, `assignment`, `gamepad`, `dsu` }. `:core:buttonmapping`
+is split the same three ways and follows the same rules.
 
 ¹ `assignment:data` is pure Kotlin (`joycon.kotlin.jvm`) — it has no Android dependencies.
 
@@ -121,7 +122,7 @@ off `AppContainer`. This keeps the ViewModel class dependent only on its domain 
 `:app`.
 
 - `DsuViewModel` — DSU status + enable toggle.
-- `GamepadViewModel` — gamepad status + Shizuku availability.
+- `GamepadViewModel` — gamepad status + wireless-debugging status and pairing.
 - `Joycon2ViewModel` (in `:app`) — the app-level host: the coordinator's session `uiState`
   (genuinely cross-feature), BLE permissions, scan/assign/disconnect, and the service binding.
 

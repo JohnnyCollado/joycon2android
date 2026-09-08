@@ -18,19 +18,17 @@ import com.joegec.joycon2android.ui.components.EmulatorOption
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlin.coroutines.resume
 
 /**
  * Writes emulator config to match the current player assignment, through the privileged shell
- * (Shizuku / wireless debugging). Best-effort: returns false — and the UI falls back to manual
+ * (wireless debugging). Best-effort: returns false — and the UI falls back to manual
  * setup — when no shell is available or the write can't be verified, since some OEM builds deny
  * even the shell user access to another app's Android/data.
  */
 class EmulatorSetup(
     private val packageManager: PackageManager,
-    private val acquireShell: (onResult: (PrivilegedShell?) -> Unit) -> Unit,
+    private val acquireShell: () -> PrivilegedShell?,
     private val scope: CoroutineScope,
     private val gamepadPorts: () -> Map<Int, Int>,
     private val gamepadControllerNumbers: () -> Map<Int, Int>,
@@ -62,7 +60,7 @@ class EmulatorSetup(
 
     /** Dolphin DSU + Wii Remote mappings (DSU card). */
     suspend fun configureDolphinDsu(players: List<PlayerState>): EmulatorSetupResult = bounded("dsu") {
-        val shell = awaitShell() ?: return@bounded EmulatorSetupResult.NO_PRIVILEGED_ACCESS
+        val shell = acquireShell() ?: return@bounded EmulatorSetupResult.NO_PRIVILEGED_ACCESS
 
         val dsuMerged = DolphinDsuConfig.merge(shell.readText(DolphinDsuConfig.path))
         shell.writeText(DolphinDsuConfig.path, dsuMerged)
@@ -86,7 +84,7 @@ class EmulatorSetup(
     /** Controller mapping for the selected emulator (Gamepad card). */
     suspend fun configureGamepad(emulatorId: String, players: List<PlayerState>): EmulatorSetupResult =
         bounded("gamepad") {
-            val shell = awaitShell() ?: return@bounded EmulatorSetupResult.NO_PRIVILEGED_ACCESS
+            val shell = acquireShell() ?: return@bounded EmulatorSetupResult.NO_PRIVILEGED_ACCESS
             val written = if (emulatorId in EdenGamepadConfig.PACKAGES) {
                 val path = EdenGamepadConfig.pathFor(emulatorId)
                 shell.writeText(
@@ -132,14 +130,6 @@ class EmulatorSetup(
         Log.i(TAG, "$tag config -> $outcome")
         return outcome
     }
-
-    private suspend fun awaitShell(): PrivilegedShell? =
-        suspendCancellableCoroutine { cont ->
-            acquireShell { shell ->
-                Log.i(TAG, "acquired shell: ${shell != null}")
-                if (cont.isActive) cont.resume(shell)
-            }
-        }
 
     private companion object {
         const val TAG = "EmulatorSetup"
